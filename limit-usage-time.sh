@@ -48,8 +48,8 @@ USERS_AND_TIMES_FILE=/home/$ADMIN/users_and_times.cfg
 # Who's currently logged in:
 #VICTIMS=`users`        # Issue: if user launches multiple terminals, he appears multiple times... (ssh in, …)
 #VICTIMS=`ps -aux | grep xinitrc | grep -v 'grep\|root\|$ADMIN' | cut -f 1 -d ' '` # By extracting user with X session
-#VICTIMS=`ps -aux | grep wm | grep -v "grep\|root\|$ADMIN" | cut -f 1 -d ' '` # By extracting users who started a Window Manager
-VICTIMS=`ps -axo user:32,args | grep /sbin/upstart | grep -v "grep\|root\|$ADMIN" | cut -f 1 -d ' '` # By extracting users who started a grafical session (users logged on with 'ssh -X' will NOT be detected)
+VICTIMS=`ps -aux | grep openbox | grep -v "grep\|root\|$ADMIN" | cut -f 1 -d ' '` # By extracting users who started a Window Manager
+#VICTIMS=`ps -axo user:32,args | grep /sbin/upstart | grep -v "grep\|root\|$ADMIN" | cut -f 1 -d ' '` # By extracting users who started a grafical session (users logged on with 'ssh -X' will NOT be detected)
 
 echo List of victims: $VICTIMS
 
@@ -125,9 +125,9 @@ for VICTIM in $VICTIMS; do
 	then
 		DISP=`cat /proc/$UPSTART_PID/environ 2>/dev/null | tr '\0' '\n' | grep '^DISPLAY=' | cut -d "=" -f 2`
 	fi
-
+        DISP=:0.0
 	# Display a warning message on the victim's screen:
-	sudo -u $VICTIM DISPLAY=$DISP notify-send -t 10000 -i gtk-info "Reminder:" "You have $TIME_LEFT minutes left for the day." &
+	sudo -u $VICTIM  DISPLAY=$DISP notify-send -t 10000 "Reminder:" "You have $TIME_LEFT minutes left for the day." &
 	#  "Reminder:" "You have $TIME_LEFT minutes left for the day."
 	# for French/français:
 	#  "Rappel:" "Il te reste $TIME_LEFT minutes pour aujourd hui."
@@ -143,8 +143,9 @@ for VICTIM in $VICTIMS; do
 	#sudo -u $VICTIM DISPLAY=$DISP totem /home/$ADMIN/ParentalControl_5mn_left_mono.wav &
 	if [ $TIME_LEFT -lt 6 ]
 	then
-		espeak -v english "Remaining $TIME_LEFT minutes left."
+		#espeak -v english "Remaining $TIME_LEFT minutes left."
 		#espeak -v french "Il reste $TIME_LEFT minutes."
+                echo
 	fi
 
 	# STEPs SEVEN and EIGHT

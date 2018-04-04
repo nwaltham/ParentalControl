@@ -48,7 +48,7 @@ USERS_AND_TIMES_FILE=/home/$ADMIN/users_and_times.cfg
 # Who's currently logged in:
 #VICTIMS=`users`        # Issue: if user launches multiple terminals, he appears multiple times... (ssh in, …)
 #VICTIMS=`ps -aux | grep xinitrc | grep -v 'grep\|root\|$ADMIN' | cut -f 1 -d ' '` # By extracting user with X session
-VICTIMS=`ps -aux | grep openbox | grep -v "grep\|root\|$ADMIN" | cut -f 1 -d ' '` # By extracting users who started a Window Manager
+VICTIMS=`ps -aux | grep lxsession | grep -v "grep\|root\|$ADMIN" | cut -f 1 -d ' '` # By extracting users who started a Window Manager
 #VICTIMS=`ps -axo user:32,args | grep /sbin/upstart | grep -v "grep\|root\|$ADMIN" | cut -f 1 -d ' '` # By extracting users who started a grafical session (users logged on with 'ssh -X' will NOT be detected)
 
 echo List of victims: $VICTIMS
@@ -117,17 +117,18 @@ for VICTIM in $VICTIMS; do
 	# STEP SIX
 	# Remind the VICTIM that he/she has $TIME_LEFT minute(s) left for the day.
 
-	UPSTART_PID=`ps -axo pid,user:32,args | grep /sbin/upstart | grep $VICTIM | grep -v grep | awk '{print $1}'`
+	DBUS_PID=`ps -axo pid,user:32,args | grep lxsession | grep $VICTIM | grep -v grep | awk '{print $1}'`
 	#Trying to get the DISPLAY from the arguments of the Window Manager:
-	DISP=`ps -aux | grep wm | grep ^$VICTIM | grep -v grep | tr -s ' ' | cut -f 13 -d ' '`
+	#DISP=`ps -aux | grep lxsession | grep ^$VICTIM | grep -v grep | tr -s ' ' | cut -f 13 -d ' '`
 	#if the upper line did not work, try an alternative method:
-	if [ -z $DISP ]
-	then
-		DISP=`cat /proc/$UPSTART_PID/environ 2>/dev/null | tr '\0' '\n' | grep '^DISPLAY=' | cut -d "=" -f 2`
-	fi
-        DISP=:0.0
+	#if [ -z $DISP ]
+	#then
+		#DISP=`cat /proc/$UPSTART_PID/environ 2>/dev/null | tr '\0' '\n' | grep '^DISPLAY=' | cut -d "=" -f 2`
+		DISP=`grep -z DBUS_SESSION_BUS_ADDRESS /proc/$DBUS_PID/environ | sed -e s/DBUS_SESSION_BUS_ADDRESS=//`
+
+	#fi
 	# Display a warning message on the victim's screen:
-	sudo -u $VICTIM  DISPLAY=$DISP notify-send -t 10000 "Reminder:" "You have $TIME_LEFT minutes left for the day." &
+	sudo -u $VICTIM  DBUS_SESSION_BUS_ADDRESS=$DISP notify-send -t 10000 "Reminder:" "You have $TIME_LEFT minutes left for the day." &
 	#  "Reminder:" "You have $TIME_LEFT minutes left for the day."
 	# for French/français:
 	#  "Rappel:" "Il te reste $TIME_LEFT minutes pour aujourd hui."
@@ -145,7 +146,7 @@ for VICTIM in $VICTIMS; do
 	then
 		#espeak -v english "Remaining $TIME_LEFT minutes left."
 		#espeak -v french "Il reste $TIME_LEFT minutes."
-                echo
+        echo
 	fi
 
 	# STEPs SEVEN and EIGHT
@@ -164,7 +165,8 @@ for VICTIM in $VICTIMS; do
 		echo "Time expired for user $VICTIM , we lock screen or logout."
 
 		# The most generic way to force-close the session:
-		sudo -u $VICTIM kill -15 $UPSTART_PID
+		#sudo -u $VICTIM kill -15 $DBUS_PID
+		sudo -u $VICTIM pkill -SIGTERM -f lxsession
 
 		# Killing the session:
 		# Works with Xfce4, replace 'xfce4-session' with approppriate one to adapt for the others:
